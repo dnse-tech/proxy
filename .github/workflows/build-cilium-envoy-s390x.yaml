@@ -36,29 +36,18 @@ jobs:
       - name: Log in to ghcr
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Cache bootstrapped Bazel
-        uses: actions/cache@v4
-        with:
-          path: ~/bin/bazel
-          key: bazel-s390x-7.7.1
-
-      - name: Cache Bazel disk cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/cilium-envoy-bazel
-          key: cilium-envoy-bazel-disk-${{ hashFiles('ENVOY_VERSION', 'WORKSPACE', 'bazel/toolchains/BUILD') }}
-          restore-keys: cilium-envoy-bazel-disk-
-
-      - name: Build, package and push
+      - name: Build s390x cilium-envoy image
         env:
-          PUSH: ${{ github.event_name == 'push' || inputs.push }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          ENVOY_SHA: ${{ env.ENVOY_SHA }}
-          JOBS: "4"
-        run: bash images/s390x/build-cilium-envoy-s390x.sh
+          DOCKER_BUILDKIT: "1"
+        run: |
+          docker build -f images/s390x/Dockerfile.s390x -t "$IMAGE:$IMAGE_TAG" .
 
-      - name: Also tag/push v1.19.4-s390x
+      - name: Verify reported envoy SHA
+        run: docker run --rm "$IMAGE:$IMAGE_TAG" cilium-envoy --version | grep -q "$ENVOY_SHA"
+
+      - name: Push
         if: ${{ github.event_name == 'push' || inputs.push }}
         run: |
           docker tag "$IMAGE:$IMAGE_TAG" "$IMAGE:v1.19.4-s390x"
+          docker push "$IMAGE:$IMAGE_TAG"
           docker push "$IMAGE:v1.19.4-s390x"

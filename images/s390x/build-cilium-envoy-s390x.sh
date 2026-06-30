@@ -16,7 +16,14 @@ set -euxo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 BAZEL_VERSION="${BAZEL_VERSION:-7.7.1}"
-JDK_HOME="${JDK_HOME:-$(ls -d /usr/lib/jvm/java-21-openjdk-* | head -1)}"
+# Fixed path (apt installs openjdk-21-jdk here on s390x). Do not `ls` — that would
+# fail under `set -e` before install_deps has a chance to install the JDK.
+JDK_HOME="${JDK_HOME:-/usr/lib/jvm/java-21-openjdk-s390x}"
+# Empty when running as root (e.g. inside a build container); "sudo" otherwise.
+SUDO="${SUDO-$([ "$(id -u)" = 0 ] && echo "" || echo sudo)}"
+# When true, package() builds+pushes the image itself (direct-on-host mode).
+# In container-build mode the workflow packages from $OUT/install instead.
+DOCKER_PACKAGE="${DOCKER_PACKAGE:-false}"
 # Required cilium-envoy version SHA the cilium agent checks against (v1.19.4).
 ENVOY_SHA="${ENVOY_SHA:-b87d1e32f522b33bd51701c6476d199326f01496}"
 IMAGE="${IMAGE:-ghcr.io/dnse-tech/cilium-envoy}"
@@ -34,18 +41,18 @@ install_deps() {
     echo "Toolchain already present; skipping apt."
   else
   export DEBIAN_FRONTEND=noninteractive
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq \
+  $SUDO apt-get update -qq
+  $SUDO apt-get install -y -qq \
     ca-certificates curl git wget zip unzip patch patchelf \
     autoconf automake cmake coreutils libtool make ninja-build \
     python3 python-is-python3 virtualenv \
     libatomic1 gcc g++ \
     openjdk-21-jdk
   # LLVM 19 (clang-18 SystemZ backend bug); apt.llvm.org
-  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
-  sudo apt-add-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq \
+  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | $SUDO tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+  $SUDO apt-add-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
+  $SUDO apt-get update -qq
+  $SUDO apt-get install -y -qq \
     clang-19 lld-19 llvm-19 llvm-19-dev clang-tools-19 \
     libc++-19-dev libc++abi-19-dev
   # Unversioned symlinks expected by bazel/toolchains/BUILD (s390x cc_toolchain).
@@ -55,7 +62,7 @@ install_deps() {
            llvm-strip:llvm-strip-19 llvm-objcopy:llvm-objcopy-19 \
            llvm-objdump:llvm-objdump-19 llvm-dwp:llvm-dwp-19 \
            llvm-cov:llvm-cov-19 llvm-config:llvm-config-19; do
-    [ -e "/usr/bin/${p##*:}" ] && sudo ln -sf "/usr/bin/${p##*:}" "/usr/bin/${p%%:*}"
+    [ -e "/usr/bin/${p##*:}" ] && $SUDO ln -sf "/usr/bin/${p##*:}" "/usr/bin/${p%%:*}"
   done
   fi
 }
@@ -115,7 +122,7 @@ EOF
 # --- 4. Package + optional push --------------------------------------------
 package() {
   cd "$REPO_ROOT"
-  local out="${OUT:-/tmp/cilium-envoy-s390x}"
+  local out="${OUT:-$REPO_ROOT/out-s390x}"
   rm -rf "$out" && mkdir -p "$out/install/usr/bin" "$out/install/usr/lib"
   cp bazel-bin/cilium-envoy            "$out/install/usr/bin/cilium-envoy"
   cp bazel-bin/cilium-envoy-starter    "$out/install/usr/bin/cilium-envoy-starter"
@@ -130,11 +137,16 @@ RUN apt-get update && apt-get upgrade -y \
     && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
 COPY install /
 EOF
-  docker build -t "$IMAGE:$IMAGE_TAG" "$out"
-  docker run --rm "$IMAGE:$IMAGE_TAG" cilium-envoy --version | grep -q "$ENVOY_SHA"
-  echo "OK: $IMAGE:$IMAGE_TAG reports envoy SHA $ENVOY_SHA"
-  if [ "$PUSH" = "true" ]; then
-    docker push "$IMAGE:$IMAGE_TAG"
+  # Verify the freshly built binary reports the required SHA (runs even when the
+  # image is packaged later by the workflow).
+  ./bazel-bin/cilium-envoy --version | grep -q "$ENVOY_SHA"
+  echo "OK: cilium-envoy reports required SHA $ENVOY_SHA; staged at $out"
+  # Direct-on-host packaging (needs docker). In container-build mode the workflow
+  # runs `docker build $out` + push on the runner instead.
+  if [ "$DOCKER_PACKAGE" = "true" ]; then
+    docker build -t "$IMAGE:$IMAGE_TAG" "$out"
+    docker run --rm "$IMAGE:$IMAGE_TAG" cilium-envoy --version | grep -q "$ENVOY_SHA"
+    [ "$PUSH" = "true" ] && docker push "$IMAGE:$IMAGE_TAG"
   fi
 }
 

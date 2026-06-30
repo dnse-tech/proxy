@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+#
+# Self-contained native linux/s390x build of cilium-envoy (Envoy 1.36.6 + Cilium).
+# Build on a native s390x host: docker build -f images/s390x/Dockerfile.s390x .
+#
+# The heavy work lives in build-cilium-envoy-s390x.sh (bazel bootstrap with the
+# s390x C1-JIT / bazel_features fixes, clang-19 toolchain, big-endian dep patches).
+# BuildKit cache mounts persist the bootstrapped bazel and the bazel disk cache
+# across builds so only the first build pays the ~20min bootstrap.
+
+FROM docker.io/library/ubuntu:24.04 AS build
+ENV SUDO="" DEBIAN_FRONTEND=noninteractive
+# Go (for proxylib libcilium.so); clang/jdk/bazel are installed by the script.
+RUN apt-get update && apt-get install -y --no-install-recommends golang-go ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY . /src
+WORKDIR /src
+RUN --mount=type=cache,target=/root/.cache/cilium-envoy-bazel \
+    --mount=type=cache,target=/root/bin \
+    --mount=type=cache,target=/root/bazel-build \
+    bash images/s390x/build-cilium-envoy-s390x.sh \
+    # copy staged artifacts out of the cache-mounted tree into the image layer
+    && cp -r /src/out-s390x /out
+
+# Final image: mirrors the upstream cilium-envoy layout so the cilium agent
+# Dockerfile can COPY the three files for the multiarch build.
+FROM docker.io/library/ubuntu:24.04
+LABEL maintainer="maintainer@dnse-tech"
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install --no-install-recommends -y ca-certificates libatomic1 \
+    && apt-get autoremove -y && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
+COPY --from=build /out/install /

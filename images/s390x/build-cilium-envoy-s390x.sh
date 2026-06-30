@@ -75,6 +75,17 @@ bootstrap_bazel() {
   if [ -x "$HOME/bin/bazel" ] && "$HOME/bin/bazel" version 2>/dev/null | grep -q "$BAZEL_VERSION"; then
     return
   fi
+  # Prefer a vendored prebuilt bazel: the from-source bootstrap relies on OpenJDK's
+  # JIT, which crashes intermittently on s390x (SIGSEGV in the compiler) even with
+  # C1-only. The vendored binary was produced by this same bootstrap on a native
+  # s390x host. Runtime only needs JDK 21 (installed by install_deps).
+  local vendored="$REPO_ROOT/images/s390x/bazel-${BAZEL_VERSION}-linux-s390x"
+  if [ -f "$vendored" ]; then
+    mkdir -p "$HOME/bin"
+    cp "$vendored" "$HOME/bin/bazel"
+    chmod +x "$HOME/bin/bazel"
+    return
+  fi
   export JAVA_HOME="$JDK_HOME" PATH="$JDK_HOME/bin:$PATH"
   # C1-only avoids the s390x C2 JIT segfault. bazel strips JAVA_TOOL_OPTIONS from
   # its server, so we also patch the phase-1 java line and set the phase-2 server

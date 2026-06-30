@@ -579,7 +579,7 @@ EXTENSIONS = {
     "envoy.generic_proxy.codecs.http1": "//source/extensions/filters/network/generic_proxy/codecs/http1:config",
 
     # Dynamic mocules
-    "envoy.filters.http.dynamic_modules":                      "//source/extensions/filters/http/dynamic_modules:factory_registration",
+    # s390x: disabled (Rust dynamic-modules SDK has no cargo-bazel generator for s390x): "envoy.filters.http.dynamic_modules":                      "//source/extensions/filters/http/dynamic_modules:factory_registration",
 }
 
 # These can be changed to ["//visibility:public"], for  downstream builds which

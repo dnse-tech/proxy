@@ -1,0 +1,22 @@
+--- a/bazel/dependency_imports.bzl
++++ b/bazel/dependency_imports.bzl
+@@ -71,7 +71,8 @@
+         ],
+     )
+     crate_universe_dependencies()
+-    crates_repositories()
++    # s390x: dynamic_modules Rust SDK crate index disabled (no cargo-bazel generator for s390x)
++    # crates_repositories()
+     grcov_repository()
+     shellcheck_dependencies()
+     proxy_wasm_rust_sdk_dependencies()
+--- a/bazel/dependency_imports_extra.bzl
++++ b/bazel/dependency_imports_extra.bzl
+@@ -1,5 +1,5 @@
+-load("@dynamic_modules_rust_sdk_crate_index//:defs.bzl", "crate_repositories")
++# s390x: dynamic_modules Rust SDK crate index disabled (no cargo-bazel generator for s390x)
+
+ # Dependencies that rely on a first stage of envoy_dependency_imports() in dependency_imports.bzl.
+ def envoy_dependency_imports_extra():
+-    crate_repositories()
++    pass

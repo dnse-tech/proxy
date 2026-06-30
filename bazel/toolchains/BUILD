@@ -269,7 +269,7 @@ cc_toolchain_config(
     # crt files and target headers. List the system include roots so Bazel permits
     # headers found outside the sandbox.
     cxx_builtin_include_directories = [
-        "/usr/lib/llvm-18",
+        "/usr/lib/llvm-19",
         "/usr/lib/clang",
         "/usr/lib/gcc/s390x-linux-gnu",
         "/usr/include/s390x-linux-gnu",
@@ -278,6 +278,15 @@ cc_toolchain_config(
     cxx_flags = ["-std=c++0x"],
     dbg_compile_flags = ["-g"],
     host_system_name = "local",
+    # foreign_cc (rules_foreign_cc configure_make) rebuilds CFLAGS internally and
+    # does NOT inherit the toolchain compile_flags. Re-inject -DNVALGRIND so bundled
+    # valgrind.h (pulled by glib/pkg-config) compiles out its s390x client-request
+    # inline asm, which clang rejects ("input with type 'int' matching output...").
+    foreign_cc_env = {
+        "CFLAGS": "-DNVALGRIND",
+        "CXXFLAGS": "-DNVALGRIND",
+        "CPPFLAGS": "-DNVALGRIND",
+    },
     link_flags = [
         "--target=s390x-unknown-linux-gnu",
         "-fuse-ld=lld",

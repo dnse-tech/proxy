@@ -43,6 +43,8 @@ git_repository(
         "@//patches:0004-thread_local-reset-slot-in-worker-threads-first.patch",
         "@//patches:0005-http-header-expose-attribute.patch",
         "@//patches:0006-test-integration-Defer-fake-upstream-read-enable-un.patch",
+        "@//patches:0007-s390x-skip-dynamic-modules-crate-index.patch",
+        "@//patches:0008-s390x-boringssl-quiche-dep-patches.patch",
     ],
     # // clang-format off: Envoy's format check: Only repository_locations.bzl may contains URL references
     remote = "https://github.com/envoyproxy/envoy.git",

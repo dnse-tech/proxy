@@ -1,0 +1,89 @@
+diff --git a/bazel/boringssl_s390x.patch b/bazel/boringssl_s390x.patch
+new file mode 100644
+index 0000000..63fa81b
+--- /dev/null
++++ b/bazel/boringssl_s390x.patch
+@@ -0,0 +1,11 @@
++--- a/include/openssl/target.h
+++++ b/include/openssl/target.h
++@@ -54,6 +54,8 @@
++ #define OPENSSL_32_BIT
++ #elif defined(__myriad2__)
++ #define OPENSSL_32_BIT
+++#elif defined(__s390x__)
+++#define OPENSSL_64_BIT
++ #else
++ // The list above enumerates the platforms that BoringSSL supports. For these
++ // platforms we keep a reasonable bar of not breaking them: automated test
+diff --git a/bazel/quiche_s390x.patch b/bazel/quiche_s390x.patch
+new file mode 100644
+index 0000000..5120bbf
+--- /dev/null
++++ b/bazel/quiche_s390x.patch
+@@ -0,0 +1,40 @@
++--- a/quiche/quic/core/quic_inlined_string_view.h
+++++ b/quiche/quic/core/quic_inlined_string_view.h
++@@ -54,7 +54,7 @@
++     if (source.size() > kMaxInlinedSize) {
++       ViewRep rep;
++       rep.data = source.data();
++-      rep.size = source.size();
+++      rep.size = NormalizeRepSize(source.size());
++       memcpy(&data_, &rep, sizeof(rep));
++       set_last_byte(kNotInlinedMarker);
++       return;
++@@ -113,7 +113,18 @@
++     size_t size;
++   };
++   static_assert(sizeof(ViewRep) <= kSize);
++-  static_assert(absl::endian::native == absl::endian::little);
+++
+++  // The non-inlined representation overlaps the marker/length byte at
+++  // data_[kSize-1] with the most-significant byte of ViewRep::size, which only
+++  // lines up on little-endian. On big-endian we byte-reverse the stored size so
+++  // its MSB lands at data_[kSize-1], matching the little-endian layout. The
+++  // transform is its own inverse, so the same helper is used on read and write.
+++  static size_t NormalizeRepSize(size_t v) {
+++    if constexpr (absl::endian::native != absl::endian::little) {
+++      return absl::byteswap(v);
+++    }
+++    return v;
+++  }
++ 
++   // Accessors for ViewRep; necessary to work around C++ strict aliasing
++   // limitations.  Clang will turn this into direct field access at `-O1`.
++@@ -125,7 +136,7 @@
++   size_t view_rep_size() const {
++     ViewRep rep;
++     memcpy(&rep, data_, sizeof(rep));
++-    return rep.size;
+++    return NormalizeRepSize(rep.size);
++   }
++   // Those casts should be valid as long as uint8_t is unsigned char.
++   const uint8_t& last_byte() const {
+diff --git a/bazel/repositories.bzl b/bazel/repositories.bzl
+index f1c7593..70f8a97 100644
+--- a/bazel/repositories.bzl
++++ b/bazel/repositories.bzl
+@@ -258,7 +258,11 @@ def envoy_dependencies(skip_targets = []):
+     )
+ 
+ def _boringssl():
+-    external_http_archive(name = "boringssl")
++    external_http_archive(
++        name = "boringssl",
++        patches = ["@envoy//bazel:boringssl_s390x.patch"],
++        patch_args = ["-p1"],
++    )
+ 
+ def _boringssl_fips():
+     external_http_archive(
+@@ -801,6 +805,8 @@ def _com_github_google_quiche():
+     external_http_archive(
+         name = "com_github_google_quiche",
+         patch_cmds = ["find quiche/ -type f -name \"*.bazel\" -delete"],
++        patches = ["@envoy//bazel:quiche_s390x.patch"],
++        patch_args = ["-p1"],
+         build_file = "@envoy//bazel/external:quiche.BUILD",
+     )
+ 

@@ -47,6 +47,7 @@ install_deps() {
     autoconf automake cmake coreutils libtool make ninja-build \
     python3 python-is-python3 virtualenv \
     libatomic1 gcc g++ \
+    libssl-dev zlib1g-dev \
     openjdk-21-jdk
   # LLVM 19 (clang-18 SystemZ backend bug); apt.llvm.org. Add the repo via a
   # sources.list file rather than apt-add-repository (avoids software-properties-common,

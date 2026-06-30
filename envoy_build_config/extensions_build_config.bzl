@@ -11,7 +11,7 @@ EXTENSIONS = {
     "envoy.access_loggers.open_telemetry": "//source/extensions/access_loggers/open_telemetry:config",
     "envoy.access_loggers.stdout": "//source/extensions/access_loggers/stream:config",
     "envoy.access_loggers.stderr": "//source/extensions/access_loggers/stream:config",
-    "envoy.access_loggers.wasm": "//source/extensions/access_loggers/wasm:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.access_loggers.wasm": "//source/extensions/access_loggers/wasm:config",
 
     #
     # Clusters
@@ -54,7 +54,7 @@ EXTENSIONS = {
     #
     # WASM
     #
-    "envoy.bootstrap.wasm": "//source/extensions/bootstrap/wasm:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.bootstrap.wasm": "//source/extensions/bootstrap/wasm:config",
 
     #
     # Reverse Connection
@@ -195,7 +195,7 @@ EXTENSIONS = {
     "envoy.filters.http.set_metadata": "//source/extensions/filters/http/set_metadata:config",
     # "envoy.filters.http.tap":                           "//source/extensions/filters/http/tap:config",
     # "envoy.filters.http.thrift_to_metadata":            "//source/extensions/filters/http/thrift_to_metadata:config",
-    "envoy.filters.http.wasm": "//source/extensions/filters/http/wasm:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.filters.http.wasm": "//source/extensions/filters/http/wasm:config",
     # "envoy.filters.http.stateful_session":              "//source/extensions/filters/http/stateful_session:config",
     # "envoy.filters.http.header_mutation":               "//source/extensions/filters/http/header_mutation:config",
 
@@ -235,7 +235,7 @@ EXTENSIONS = {
     "envoy.filters.network.set_filter_state": "//source/extensions/filters/network/set_filter_state:config",
     "envoy.filters.network.sni_cluster": "//source/extensions/filters/network/sni_cluster:config",
     "envoy.filters.network.sni_dynamic_forward_proxy": "//source/extensions/filters/network/sni_dynamic_forward_proxy:config",
-    "envoy.filters.network.wasm": "//source/extensions/filters/network/wasm:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.filters.network.wasm": "//source/extensions/filters/network/wasm:config",
     # "envoy.filters.network.zookeeper_proxy":                      "//source/extensions/filters/network/zookeeper_proxy:config",
     # "envoy.filters.network.generic_proxy":                        "//source/extensions/filters/network/generic_proxy:config",
 
@@ -273,7 +273,7 @@ EXTENSIONS = {
     "envoy.stat_sinks.metrics_service": "//source/extensions/stat_sinks/metrics_service:config",
     "envoy.stat_sinks.open_telemetry": "//source/extensions/stat_sinks/open_telemetry:config",
     # "envoy.stat_sinks.statsd":                          "//source/extensions/stat_sinks/statsd:config",
-    "envoy.stat_sinks.wasm": "//source/extensions/stat_sinks/wasm:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.stat_sinks.wasm": "//source/extensions/stat_sinks/wasm:config",
 
     #
     # Thrift filters
@@ -373,10 +373,10 @@ EXTENSIONS = {
     #
     # WebAssembly runtimes
     #
-    "envoy.wasm.runtime.null": "//source/extensions/wasm_runtime/null:config",
-    "envoy.wasm.runtime.v8": "//source/extensions/wasm_runtime/v8:config",
-    "envoy.wasm.runtime.wamr": "//source/extensions/wasm_runtime/wamr:config",
-    "envoy.wasm.runtime.wasmtime": "//source/extensions/wasm_runtime/wasmtime:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.wasm.runtime.null": "//source/extensions/wasm_runtime/null:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.wasm.runtime.v8": "//source/extensions/wasm_runtime/v8:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.wasm.runtime.wamr": "//source/extensions/wasm_runtime/wamr:config",
+    # s390x: wasm disabled (V8/wasmtime/wamr lack big-endian support): "envoy.wasm.runtime.wasmtime": "//source/extensions/wasm_runtime/wasmtime:config",
 
     #
     # Rate limit descriptors

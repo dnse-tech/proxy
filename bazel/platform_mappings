@@ -7,10 +7,17 @@ platforms:
     --cpu=k8
     --crosstool_top=//bazel/toolchains:toolchain
 
+  //bazel:linux_s390x
+    --cpu=s390x
+    --crosstool_top=//bazel/toolchains:toolchain
+
 flags:
   --cpu=k8
     //bazel:linux_x86_64
 
   --cpu=aarch64
     //bazel:linux_aarch64
+
+  --cpu=s390x
+    //bazel:linux_s390x
 

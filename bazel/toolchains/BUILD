@@ -221,11 +221,115 @@ cc_toolchain_config(
     # builtin_sysroot = "/sysroot",
 )
 
+toolchain(
+    name = "s390x_linux_cc_toolchain",
+    exec_compatible_with = ["@platforms//os:linux"],
+    target_compatible_with = [
+        "@platforms//cpu:s390x",
+        "@platforms//os:linux",
+    ],
+    toolchain = ":clang_s390x_linux_cc_toolchain",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+)
+
+cc_toolchain(
+    name = "clang_s390x_linux_cc_toolchain",
+    all_files = ":empty",
+    compiler_files = ":empty",
+    dwp_files = ":empty",
+    linker_files = ":empty",
+    objcopy_files = ":empty",
+    strip_files = ":empty",
+    toolchain_config = ":clang_s390x_linux_toolchain_config",
+)
+
+cc_toolchain_config(
+    name = "clang_s390x_linux_toolchain_config",
+    abi_libc_version = "unknown",
+    abi_version = "unknown",
+    compile_flags = [
+        "--target=s390x-unknown-linux-gnu",
+        "-fuse-ld=lld",  # cmake compiler test needs this
+        "-U_FORTIFY_SOURCE",
+        "-fstack-protector",
+        "-Wall",
+        "-Wunused-but-set-parameter",
+        "-Wthread-safety-analysis",
+        "-Wno-free-nonheap-object",
+        "-fno-omit-frame-pointer",
+        # Needed by Envoy dependencies to build:
+        "-Wno-unused-command-line-argument",  # tcmalloc needs this since -fuse-ld was added above
+        "-Wno-deprecated-builtins",
+    ],
+    compiler = "clang",
+    coverage_compile_flags = ["--coverage"],
+    coverage_link_flags = ["--coverage"],
+    cpu = "s390x",
+    # Native s390x build: clang auto-detects the system GCC install for libstdc++,
+    # crt files and target headers. List the system include roots so Bazel permits
+    # headers found outside the sandbox.
+    cxx_builtin_include_directories = [
+        "/usr/lib/llvm-18",
+        "/usr/lib/clang",
+        "/usr/lib/gcc/s390x-linux-gnu",
+        "/usr/include/s390x-linux-gnu",
+        "/usr/include",
+    ],
+    cxx_flags = ["-std=c++0x"],
+    dbg_compile_flags = ["-g"],
+    host_system_name = "local",
+    link_flags = [
+        "--target=s390x-unknown-linux-gnu",
+        "-fuse-ld=lld",
+        "-Wl,-no-as-needed",
+        "-Wl,-z,relro,-z,now",
+        "-lm",
+    ],
+    link_libs = [
+        "-l:libstdc++.a",
+        "-latomic",
+    ],
+    opt_compile_flags = [
+        "-g0",
+        "-O2",
+        "-D_FORTIFY_SOURCE=1",
+        "-DNDEBUG",
+        "-ffunction-sections",
+        "-fdata-sections",
+    ],
+    opt_link_flags = ["-Wl,--gc-sections"],
+    supports_start_end_lib = True,
+    target_libc = "unknown",
+    target_system_name = "unknown",
+    tool_paths = {
+        "ar": "/usr/bin/llvm-ar",
+        "compat-ld": "/usr/bin/lld",
+        "ld": "/usr/bin/lld",
+        "gold": "/usr/bin/lld",
+        "cpp": "/usr/bin/clang-cpp",
+        "gcc": "/usr/bin/clang",
+        "dwp": "/usr/bin/llvm-dwp",
+        "gcov": "/usr/bin/llvm-cov",
+        "nm": "/usr/bin/llvm-nm",
+        "objcopy": "/usr/bin/llvm-objcopy",
+        "objdump": "/usr/bin/llvm-objdump",
+        "strip": "/usr/bin/llvm-strip",
+    },
+    toolchain_identifier = "linux_s390x",
+    unfiltered_compile_flags = [
+        "-Wno-builtin-macro-redefined",
+        "-D__DATE__=\"redacted\"",
+        "-D__TIMESTAMP__=\"redacted\"",
+        "-D__TIME__=\"redacted\"",
+    ],
+)
+
 # still needed to avoid use of local_config_cc toolchain
 cc_toolchain_suite(
     name = "toolchain",
     toolchains = {
         "k8": ":clang_x86_64_linux_cc_toolchain",
         "aarch64": ":clang_aarch64_linux_cc_toolchain",
+        "s390x": ":clang_s390x_linux_cc_toolchain",
     },
 )

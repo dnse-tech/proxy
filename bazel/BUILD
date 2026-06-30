@@ -13,3 +13,11 @@ platform(
         "@platforms//os:linux",
     ],
 )
+
+platform(
+    name = "linux_s390x",
+    constraint_values = [
+        "@platforms//cpu:s390x",
+        "@platforms//os:linux",
+    ],
+)

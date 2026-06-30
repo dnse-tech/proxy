@@ -129,7 +129,9 @@ EOF
   GOARCH=s390x make -C proxylib all
   # cilium-envoy + starter (Bazel). PKG_BUILD=1 registers the s390x toolchain and
   # assumes bazel+clang present; ARCH=s390x selects //bazel:linux_s390x + release.
-  make PKG_BUILD=1 ARCH=s390x V="${V:-0}" \
+  # V=1 (verbose) is required: with V=0 the Makefile's $(QUIET) expands to a bare
+  # "@" mid-recipe in `$(BAZEL)`, which the shell tries to run ("@: command not found").
+  make PKG_BUILD=1 ARCH=s390x V="${V:-1}" \
     bazel-bin/cilium-envoy-starter bazel-bin/cilium-envoy
 }
 

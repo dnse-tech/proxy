@@ -48,9 +48,12 @@ install_deps() {
     python3 python-is-python3 virtualenv \
     libatomic1 gcc g++ \
     openjdk-21-jdk
-  # LLVM 19 (clang-18 SystemZ backend bug); apt.llvm.org
+  # LLVM 19 (clang-18 SystemZ backend bug); apt.llvm.org. Add the repo via a
+  # sources.list file rather than apt-add-repository (avoids software-properties-common,
+  # absent from minimal ubuntu containers).
   wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | $SUDO tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
-  $SUDO apt-add-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
+  echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" \
+    | $SUDO tee /etc/apt/sources.list.d/llvm-toolchain-19.list >/dev/null
   $SUDO apt-get update -qq
   $SUDO apt-get install -y -qq \
     clang-19 lld-19 llvm-19 llvm-19-dev clang-tools-19 \
@@ -150,7 +153,10 @@ EOF
   fi
 }
 
-install_deps
-bootstrap_bazel
-build
-package
+# Allow sourcing for testing individual phases: SOURCE_ONLY=1 source <script>
+if [ "${SOURCE_ONLY:-}" != "1" ]; then
+  install_deps
+  bootstrap_bazel
+  build
+  package
+fi

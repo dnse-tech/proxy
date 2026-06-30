@@ -26,6 +26,13 @@ JOBS="${JOBS:-4}"
 
 # --- 1. Toolchain prerequisites (idempotent) -------------------------------
 install_deps() {
+  # Skip apt entirely when the toolchain is already present (e.g. a runner that
+  # shares a pre-provisioned host). Avoids needing passwordless sudo.
+  if command -v clang-19 >/dev/null && command -v lld-19 >/dev/null \
+     && [ -e /usr/lib/llvm-19/lib/libc++.a ] && [ -d "$JDK_HOME" ] \
+     && command -v go >/dev/null; then
+    echo "Toolchain already present; skipping apt."
+  else
   export DEBIAN_FRONTEND=noninteractive
   sudo apt-get update -qq
   sudo apt-get install -y -qq \
@@ -50,6 +57,7 @@ install_deps() {
            llvm-cov:llvm-cov-19 llvm-config:llvm-config-19; do
     [ -e "/usr/bin/${p##*:}" ] && sudo ln -sf "/usr/bin/${p##*:}" "/usr/bin/${p%%:*}"
   done
+  fi
 }
 
 # --- 2. Bootstrap Bazel 7.7.1 for s390x ------------------------------------

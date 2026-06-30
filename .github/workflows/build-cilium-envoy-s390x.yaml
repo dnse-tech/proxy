@@ -1,0 +1,64 @@
+name: Build cilium-envoy (linux/s390x)
+
+# Native linux/s390x build of cilium-envoy (Envoy 1.36.6 + Cilium) on the
+# self-hosted IBM Z runner, published to ghcr.io/dnse-tech/cilium-envoy.
+# Upstream publishes amd64/arm64 only; this fills the s390x gap so the cilium
+# agent can ship with embedded Envoy on s390x.
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Push image to ghcr"
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "cilium-envoy-s390x-*"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  ENVOY_SHA: b87d1e32f522b33bd51701c6476d199326f01496
+  IMAGE: ghcr.io/dnse-tech/cilium-envoy
+  IMAGE_TAG: v1.36.6-1778235340-b87d1e32f522b33bd51701c6476d199326f01496-s390x
+
+jobs:
+  build:
+    runs-on: [self-hosted, s390x]
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to ghcr
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Cache bootstrapped Bazel
+        uses: actions/cache@v4
+        with:
+          path: ~/bin/bazel
+          key: bazel-s390x-7.7.1
+
+      - name: Cache Bazel disk cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/cilium-envoy-bazel
+          key: cilium-envoy-bazel-disk-${{ hashFiles('ENVOY_VERSION', 'WORKSPACE', 'bazel/toolchains/BUILD') }}
+          restore-keys: cilium-envoy-bazel-disk-
+
+      - name: Build, package and push
+        env:
+          PUSH: ${{ github.event_name == 'push' || inputs.push }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          ENVOY_SHA: ${{ env.ENVOY_SHA }}
+          JOBS: "4"
+        run: bash images/s390x/build-cilium-envoy-s390x.sh
+
+      - name: Also tag/push v1.19.4-s390x
+        if: ${{ github.event_name == 'push' || inputs.push }}
+        run: |
+          docker tag "$IMAGE:$IMAGE_TAG" "$IMAGE:v1.19.4-s390x"
+          docker push "$IMAGE:v1.19.4-s390x"

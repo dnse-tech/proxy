@@ -1,0 +1,8 @@
+.git
+out-s390x
+bazel-bin
+bazel-out
+bazel-testlogs
+SOURCE_VERSION
+user.bazelrc
+clang.bazelrc

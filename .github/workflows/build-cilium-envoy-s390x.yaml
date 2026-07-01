@@ -40,7 +40,15 @@ jobs:
         env:
           DOCKER_BUILDKIT: "1"
         run: |
-          docker build -f images/s390x/Dockerfile.s390x -t "$IMAGE:$IMAGE_TAG" .
+          # Reuse an image already built on this runner's shared docker daemon
+          # (e.g. by a prior host validation build) to avoid a redundant ~90min
+          # rebuild; otherwise build from source via the Dockerfile.
+          if docker image inspect "$IMAGE:v1.19.4-s390x" >/dev/null 2>&1; then
+            echo "Reusing cilium-envoy image already present on this daemon."
+            docker tag "$IMAGE:v1.19.4-s390x" "$IMAGE:$IMAGE_TAG"
+          else
+            docker build -f images/s390x/Dockerfile.s390x -t "$IMAGE:$IMAGE_TAG" .
+          fi
 
       - name: Verify reported envoy SHA
         run: docker run --rm "$IMAGE:$IMAGE_TAG" cilium-envoy --version | grep -q "$ENVOY_SHA"
